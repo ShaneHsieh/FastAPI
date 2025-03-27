@@ -23,6 +23,7 @@ class Product(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     suppliers = relationship("Supplier", secondary=product_supplier, back_populates="products")
+    history = relationship("ProductHistory", back_populates="product", cascade="all, delete-orphan")
 
 # Supplier Model
 class Supplier(Base):
@@ -32,3 +33,13 @@ class Supplier(Base):
     contact_info = Column(String, nullable=True)
     rating = Column(Float, default=0.0)
     products = relationship("Product", secondary=product_supplier, back_populates="suppliers")
+
+class ProductHistory(Base):
+    __tablename__ = "product_histories"
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    price = Column(Float, nullable=False)
+    stock = Column(Integer, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+    product = relationship("Product", back_populates="history")
