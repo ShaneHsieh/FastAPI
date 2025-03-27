@@ -15,7 +15,7 @@ Build and run docker
 Test api(use pytest) 
 
 ```bash
-  docker compose up --build -d test
+  docker compose up --build test
 ```
 
 Check docker status
