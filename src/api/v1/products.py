@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from src.db.session import get_db
-from src.crud.products import create_product, get_product, get_products, update_product, delete_product , get_product_history
+from src.crud.products import create_product, get_product, get_products, update_product, delete_product , get_product_history, search_products
 from src.schemas.products import ProductCreate, ProductResponse
-from typing import List
+from typing import List, Optional
 from src.schemas.products import ProductUpdate  # 假設有 ProductUpdate schema
 from datetime import datetime
 from src.schemas.products import ProductHistoryResponse
@@ -37,6 +37,37 @@ def delete_multiple_products(ids: str , db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=f"Products with ID {deleted_fail_products} not found")
     return
 
+@router.get("/advanced-search", response_model=List[ProductResponse])
+def advanced_search_products(
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    category: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    min_stock: Optional[int] = None,
+    max_stock: Optional[int] = None,
+    skip: int = 0,
+    limit: int = 10,
+    sort_by: Optional[str] = Query(None, regex="^(name|price|stock|created_at|updated_at)$"),
+    sort_order: str = Query("asc", regex="^(asc|desc)$"),
+    db: Session = Depends(get_db)
+):
+    products = search_products(
+        db=db,
+        name=name,
+        description=description,
+        category=category,
+        min_price=min_price,
+        max_price=max_price,
+        min_stock=min_stock,
+        max_stock=max_stock,
+        skip=skip,
+        limit=limit,
+        sort_by=sort_by,
+        sort_order=sort_order
+    )
+    return products
+
 @router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 def create_new_product(product: ProductCreate, db: Session = Depends(get_db)):
     new_product = create_product(db=db, product=product)
@@ -67,11 +98,6 @@ def delete_existing_product(product_id: int, db: Session = Depends(get_db)):
     if result is None:
         raise HTTPException(status_code=404, detail="Product not found")
     return 
-
-@router.get("/search/")
-def search_products(name: str = None, category: str = None, db: Session = Depends(get_db)):
-    products = get_products(db=db, name=name, category=category)
-    return products
 
 @router.get("/{product_id}/history", response_model=List[ProductHistoryResponse])
 def read_product_history(

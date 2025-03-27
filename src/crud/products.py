@@ -65,3 +65,48 @@ def get_product_history(db: Session, product_id: int, start_time: datetime, end_
         ProductHistory.timestamp >= start_time,
         ProductHistory.timestamp <= end_time
     ).all()
+
+def search_products(
+    db: Session,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    category: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    min_stock: Optional[int] = None,
+    max_stock: Optional[int] = None,
+    skip: int = 0,
+    limit: int = 10,
+    sort_by: Optional[str] = None,
+    sort_order: str = "asc"
+) -> List[ProductResponse]:
+    query = db.query(Product)
+
+    # 模糊查詢
+    if name:
+        query = query.filter(Product.name.ilike(f"%{name}%"))
+    if description:
+        query = query.filter(Product.description.ilike(f"%{description}%"))
+
+    # 條件篩選
+    if category:
+        query = query.filter(Product.category == category)
+    if min_price is not None:
+        query = query.filter(Product.price >= min_price)
+    if max_price is not None:
+        query = query.filter(Product.price <= max_price)
+    if min_stock is not None:
+        query = query.filter(Product.stock >= min_stock)
+    if max_stock is not None:
+        query = query.filter(Product.stock <= max_stock)
+
+    # 排序
+    if sort_by:
+        sort_column = getattr(Product, sort_by, None)
+        if sort_column is not None:
+            query = query.order_by(sort_column.desc() if sort_order == "desc" else sort_column.asc())
+
+    # 分頁
+    query = query.offset(skip).limit(limit)
+
+    return query.all()
