@@ -29,5 +29,16 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
 
+  test:
+    build: .
+    container_name: fastapi_test
+    depends_on:
+      - db
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    command: ["pytest", "--maxfail=1", "--disable-warnings", "-v"]
+
 volumes:
   postgres_data:

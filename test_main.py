@@ -4,6 +4,48 @@ import json
 
 client = TestClient(app)
 
+def test_create_supplier():
+    response = client.post("/api/v1/suppliers/", json={
+        "name": "Test Supplier",
+        "contact_info": "test@example.com",
+        "rating": 4
+    })
+    assert response.status_code == 201
+    assert response.json()["name"] == "Test Supplier"
+    assert response.json()["rating"] == 4
+
+def test_get_supplier():
+    supplier_id = 1
+    response = client.get(f"/api/v1/suppliers/{supplier_id}")
+    assert response.status_code == 200
+    assert response.json()["id"] == supplier_id
+
+def test_update_supplier():
+    supplier_id = 1
+    response = client.put(f"/api/v1/suppliers/{supplier_id}", json={
+        "name": "Updated Supplier",
+        "contact_info": "updated@example.com",
+        "rating": 5
+    })
+    assert response.status_code == 200
+    assert response.json()["name"] == "Updated Supplier"
+    assert response.json()["rating"] == 5
+
+def test_read_suppliers():
+    response = client.get("/api/v1/suppliers/")
+
+    assert response.status_code == 200
+    
+    suppliers = response.json()
+    assert isinstance(suppliers, list)
+    assert len(suppliers) > 0
+    for supplier in suppliers:
+        #print(supplier)
+        assert "id" in supplier
+        assert "name" in supplier
+        assert "contact_info" in supplier
+        assert "rating" in supplier
+
 def test_default_create_supplier():
     response = client.post("/api/v1/suppliers/", json={
         "name": "Supplier A",
@@ -34,6 +76,9 @@ def test_create_product():
         "suppliers": ["Supplier A", "Supplier B"]
     }
     response = client.post("/api/v1/products", json=product_data)
+    print("test_create_product")
+    print("Status Code:", response.status_code)
+    print(response.json())
 
     assert response.status_code == 201
     assert response.json()["name"] == product_data["name"]
@@ -99,7 +144,7 @@ def test_get_products():
     assert isinstance(products, list)
     assert len(products) > 0 
     for product in products:
-        print(product)
+        #print(product)
         assert "name" in product
         assert "price" in product
         assert "description" in product
@@ -109,58 +154,6 @@ def test_get_products():
         #assert "suppliers" in product
         assert "created_at" in product
         assert "updated_at" in product
-
-def test_create_supplier():
-    response = client.post("/api/v1/suppliers/", json={
-        "name": "Test Supplier",
-        "contact_info": "test@example.com",
-        "rating": 4
-    })
-    assert response.status_code == 201
-    assert response.json()["name"] == "Test Supplier"
-    assert response.json()["rating"] == 4
-
-def test_get_supplier():
-    supplier_id = 1
-    response = client.get(f"/api/v1/suppliers/{supplier_id}")
-    assert response.status_code == 200
-    assert response.json()["id"] == supplier_id
-
-def test_update_supplier():
-    supplier_id = 1
-    response = client.put(f"/api/v1/suppliers/{supplier_id}", json={
-        "name": "Updated Supplier",
-        "contact_info": "updated@example.com",
-        "rating": 5
-    })
-    assert response.status_code == 200
-    assert response.json()["name"] == "Updated Supplier"
-    assert response.json()["rating"] == 5
-
-# def test_delete_supplier():
-#     supplier_id = 1
-#     response = client.delete(f"/api/v1/suppliers/{supplier_id}")
-#     print("test_delete_supplier")
-#     print("Status Code:", response.status_code)
-#     assert response.status_code == 204
-
-def test_read_suppliers():
-    # Act: 發送 GET 請求
-    response = client.get("/api/v1/suppliers/")
-    
-    # Assert: 驗證回應
-    assert response.status_code == 200
-    
-    # 驗證回應的結構和內容
-    suppliers = response.json()
-    assert isinstance(suppliers, list)
-    assert len(suppliers) > 0  # 確保至少有一個供應商
-    for supplier in suppliers:
-        print(supplier)
-        assert "id" in supplier
-        assert "name" in supplier
-        assert "contact_info" in supplier
-        assert "rating" in supplier
 
 def test_batch_create_products():
     products_data = [
@@ -221,20 +214,6 @@ def test_batch_update_products():
         assert updated_product["price"] == update["price"]
         assert updated_product["stock"] == update["stock"]
 
-# def test_batch_delete_products():
-#     product_ids = [29 , 30]
-#     ids_str = ",".join(map(str, product_ids))  
-#     response = client.delete(f"/api/v1/products/batch?ids={ids_str}") 
-
-#     print("test_batch_delete_products")
-#     print("Status Code:", response.status_code)
-#     assert response.status_code == 204
-
-#     # Verify products are deleted
-#     for product_id in product_ids:
-#         response = client.get(f"/api/v1/products/{product_id}")
-#         assert response.status_code == 404
-
 def test_read_product_history():
     product_id = 1
     start_time = "2025-01-01T00:00:00"
@@ -249,3 +228,41 @@ def test_read_product_history():
         assert "timestamp" in record
         assert "stock" in record
         assert "price" in record
+
+def test_advanced_search_products():
+    response = client.get("/api/v1/products/advanced-search", params={
+        "name": "Product",
+        "min_price": 50,
+        "max_price": 100,
+        "sort_by": "price",
+        "sort_order": "desc",
+        "skip": 0,
+        "limit": 2
+    })
+
+    assert response.status_code == 200
+    products = response.json()
+    assert isinstance(products, list)
+    assert len(products) <= 2
+    for product in products:
+        assert "name" in product
+        assert "price" in product
+        assert product["price"] >= 50 and product["price"] <= 100
+
+def test_batch_delete_products():
+    product_ids = [1 , 2]
+    ids_str = ",".join(map(str, product_ids))  
+    response = client.delete(f"/api/v1/products/batch?ids={ids_str}") 
+    assert response.status_code == 204
+
+    # Verify products are deleted
+    for product_id in product_ids:
+        response = client.get(f"/api/v1/products/{product_id}")
+        assert response.status_code == 404
+
+def test_delete_supplier():
+    supplier_id = 1
+    response = client.delete(f"/api/v1/suppliers/{supplier_id}")
+    print("test_delete_supplier")
+    print("Status Code:", response.status_code)
+    assert response.status_code == 204
