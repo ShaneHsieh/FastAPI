@@ -40,3 +40,11 @@ CREATE TABLE IF NOT EXISTS product_supplier (
     supplier_id INTEGER NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
     PRIMARY KEY (product_id, supplier_id)
 );
+
+CREATE TABLE IF NOT EXISTS product_histories (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    price FLOAT NOT NULL,
+    stock INTEGER NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
